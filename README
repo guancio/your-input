@@ -1,0 +1,3 @@
+Small utility for Linux to emulate a mouse using a joypad. Used to play retro-games (e.g. simcity) from the couch.
+
+Dependencies: pygame and https://github.com/tuomasjjrasanen/python-uinput
