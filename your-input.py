@@ -79,33 +79,27 @@ with uinput.Device(events) as device:
         # if event.type == pygame.JOYAXISMOTION:
         # print("joy axis motion")
     
-        # pygame.display.update()
-        # if (joystick.get_button(4)):
-        #     device.emit(uinput.REL_Y, -5)
-        # if (joystick.get_button(5)):
-        #     device.emit(uinput.REL_X, 5)
-        # if (joystick.get_button(6)):
-        #     device.emit(uinput.REL_Y, 5)
-        # if (joystick.get_button(7)):
-        #     device.emit(uinput.REL_X, -5)
-        if (abs(joystick.get_axis(0)) < 0.1 and abs(joystick.get_axis(2)) < 0.1):
-            xspeed = 0
-        if (abs(joystick.get_axis(0)) >= 0.1):
-            xspeed += 3*joystick.get_axis(0)
-        if (abs(joystick.get_axis(2)) >= 0.1):
-            xspeed = 10*joystick.get_axis(2)
-        if (xspeed > 60):
-            xspeed = 60    
-            
-        if (abs(joystick.get_axis(1)) < 0.1 and abs(joystick.get_axis(3)) < 0.1):
-            yspeed = 0
-        if (abs(joystick.get_axis(1)) >= 0.1):
-            yspeed += 3*joystick.get_axis(1)
-        if (abs(joystick.get_axis(3)) >= 0.1):
-            yspeed = 10*joystick.get_axis(3)
-        if (yspeed > 60):
-            yspeed = 60    
+        def move(axis1, axis2, button1, button2, acc, slow):
+            if (abs(joystick.get_axis(axis1)) < 0.1 and abs(joystick.get_axis(axis2)) < 0.1) and \
+               not joystick.get_button(button2) and not joystick.get_button(button1):
+                res = 0
+            if joystick.get_button(button1):
+                res = -10
+            if joystick.get_button(button2):
+                res = 10
+            if (abs(joystick.get_axis(axis2)) >= 0.1):
+                res = 15*joystick.get_axis(axis2)
+            if (abs(joystick.get_axis(axis1)) >= 0.1):
+                res = 30*joystick.get_axis(axis1)
+            if joystick.get_button(acc):
+                res *= 3
+            if joystick.get_button(slow):
+                res /= 3
+                
+            return res;
 
+        xspeed = move(2, 0, 7, 5, 12, 15)
+        yspeed = move(3, 1, 4, 6, 12, 15)
             
         if (xspeed > 0 and yspeed > 0):
             xspeed = max(xspeed, yspeed)
@@ -113,16 +107,17 @@ with uinput.Device(events) as device:
             
         device.emit(uinput.REL_X, int(xspeed))
         device.emit(uinput.REL_Y, int(yspeed))
-        if ((joystick.get_button(12) or joystick.get_button(10)) and (not left)):
+
+        if ((joystick.get_button(14) or joystick.get_button(10)) and (not left)):
             device.emit(uinput.BTN_LEFT, 1);
             left = True
-        if (not joystick.get_button(12) and not joystick.get_button(10) and left):
+        if (not joystick.get_button(14) and not joystick.get_button(10) and left):
             device.emit(uinput.BTN_LEFT, 0);
             left = False
-        if ((joystick.get_button(15) or joystick.get_button(8))and (not right)):
+        if ((joystick.get_button(13) or joystick.get_button(8))and (not right)):
             device.emit(uinput.BTN_RIGHT, 1);
             right = True
-        if (not joystick.get_button(15) and not joystick.get_button(8) and right):
+        if (not joystick.get_button(13) and not joystick.get_button(8) and right):
             device.emit(uinput.BTN_RIGHT, 0);
             right = False
         time.sleep(interval)
