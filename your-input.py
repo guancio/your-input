@@ -1,15 +1,13 @@
 #!/usr/bin/python
 
-import time
-
 import uinput
-import random
-
-import pygame
-
 
 import pygame, sys, time
 from pygame.locals import *
+
+import config
+
+active_config = config.TwoAxes;
 
 pygame.init()
 pygame.joystick.init()
@@ -49,6 +47,52 @@ right = False
 xspeed = 0
 yspeed = 0
 
+def max_abs_axis(p_list):
+    if len(p_list) == 0:
+        return 0
+    m = abs(joystick.get_axis(p_list[0]))
+    for x in p_list:
+        m = max(m, abs(joystick.get_axis(x)))
+    return m
+
+def max_axis(p_list):
+    if len(p_list) == 0:
+        return 0
+    m = abs(joystick.get_axis(p_list[0]))
+    s = 1 if joystick.get_axis(p_list[0]) >= 0 else -1
+    for x in p_list:
+        v = abs(joystick.get_axis(x))
+        if v > m:
+            m = v
+            s = 1 if v >= 0 else -1
+    return m*s
+
+def or_button(p_list):
+    if len(p_list) == 0:
+        return False
+    m = joystick.get_button(p_list[0])
+    for x in p_list:
+        m = m or joystick.get_button(x)
+    return m
+
+def move(axis1, axis2, button1, button2, acc, slow):
+    if (max_abs_axis(axis1+axis2) < 0.1 and not or_button(button1+button2)):
+        res = 0
+    if or_button(button1):
+        res = -10
+    if or_button(button2):
+        res = 10
+    if (max_abs_axis(axis2) >= 0.1):
+        res = 15*max_axis(axis2)
+    if (max_abs_axis(axis1) >= 0.1):
+        res = 30*max_axis(axis1)
+    if or_button(acc):
+        res *= 3
+    if or_button(slow):
+        res /= 3
+    
+    return res;
+
 with uinput.Device(events) as device:
     while loopQuit == False:
 
@@ -79,28 +123,14 @@ with uinput.Device(events) as device:
         # if event.type == pygame.JOYAXISMOTION:
         # print("joy axis motion")
     
-        def move(axis1, axis2, button1, button2, acc, slow):
-            if (abs(joystick.get_axis(axis1)) < 0.1 and abs(joystick.get_axis(axis2)) < 0.1) and \
-               not joystick.get_button(button2) and not joystick.get_button(button1):
-                res = 0
-            if joystick.get_button(button1):
-                res = -10
-            if joystick.get_button(button2):
-                res = 10
-            if (abs(joystick.get_axis(axis2)) >= 0.1):
-                res = 15*joystick.get_axis(axis2)
-            if (abs(joystick.get_axis(axis1)) >= 0.1):
-                res = 30*joystick.get_axis(axis1)
-            if joystick.get_button(acc):
-                res *= 3
-            if joystick.get_button(slow):
-                res /= 3
-                
-            return res;
+        xspeed = move(active_config.x_fast_axis, active_config.x_slow_axis,
+                      active_config.x_left_button, active_config.x_right_button,
+                      active_config.acc_button, active_config.slow_button)
 
-        xspeed = move(2, 0, 7, 5, 12, 15)
-        yspeed = move(3, 1, 4, 6, 12, 15)
-            
+        yspeed = move(active_config.y_fast_axis, active_config.y_slow_axis,
+                      active_config.y_top_button, active_config.y_bottom_button,
+                      active_config.acc_button, active_config.slow_button)
+        
         if (xspeed > 0 and yspeed > 0):
             xspeed = max(xspeed, yspeed)
             yspeed = xspeed
@@ -108,16 +138,16 @@ with uinput.Device(events) as device:
         device.emit(uinput.REL_X, int(xspeed))
         device.emit(uinput.REL_Y, int(yspeed))
 
-        if ((joystick.get_button(14) or joystick.get_button(10)) and (not left)):
+        if (or_button(active_config.left_buttons) and (not left)):
             device.emit(uinput.BTN_LEFT, 1);
             left = True
-        if (not joystick.get_button(14) and not joystick.get_button(10) and left):
+        if (not or_button(active_config.left_buttons) and left):
             device.emit(uinput.BTN_LEFT, 0);
             left = False
-        if ((joystick.get_button(13) or joystick.get_button(8))and (not right)):
+        if (or_button(active_config.right_buttons) and (not right)):
             device.emit(uinput.BTN_RIGHT, 1);
             right = True
-        if (not joystick.get_button(13) and not joystick.get_button(8) and right):
+        if (or_button(active_config.right_buttons) and right):
             device.emit(uinput.BTN_RIGHT, 0);
             right = False
         time.sleep(interval)
